@@ -1,0 +1,25 @@
+{
+  "name": "socket-chat",
+  "version": "0.0.1",
+  "description": "socket.io chat app",
+  "dependencies": {
+    "express": "^4.14.0",
+    "log4js": "^0.6.38",
+    "moment": "^2.14.1",
+    "socket.io": "^1.4.8",
+    "underscore": "^1.8.3",
+    "util": "^0.10.3"
+  },
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vrishank Shete",
+  "license": "ISC",
+  "keywords": [
+    "node",
+    "chat",
+    "app"
+  ]
+}

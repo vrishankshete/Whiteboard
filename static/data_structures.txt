@@ -1,0 +1,39 @@
+rooms: {
+	'1234': {
+		users: ['#\2def43rdf34sdf'] //Array of user Ids(socket Ids),
+		drawings: [drawing, drawing]; //Array of drawings.
+	}
+}
+
+users: {
+	'#\2def43rdf34sdf' : {
+		name:'Vrishank',
+		roomId:'1234'
+	}
+}
+
+sidUnameMap: {
+	#\2def43rdf34sdf:'Vrishank'
+}
+
+drawing: {
+	userId:'#\2def43rdf34sdf',
+	name:'Vrishank',
+	addedTime:'',
+	lastUpdatedUserId:'',
+	lastUpdatedTime:'',
+	drawingData:{
+		type:'rect',				type:'path', 
+		attributes:{				attributes:{
+			style:{						style:{
+				fill:none,					fill:none,
+				stroke-width:4px,			stroke:black,
+				stroke:red					stroke-wid:4px
+			},							},
+			x:10,						d:{ }
+			y:10,						
+			width:30,					
+			height:30					
+		}
+	}
+}

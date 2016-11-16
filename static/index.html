@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <link rel="stylesheet" href="/stylesheet.css">
+    <link rel="stylesheet" href="/bootstrap.css">
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/css/bootstrap.css">
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.8/socket.io.js"></script>-->
+    <script src="/simplify.min.js"></script>
+    <script src="/moment.js"></script>
+    <script src="/jquery.js"></script>
+    <script src="/socket.io.js"></script>
+    <script src="/connect.js"></script>
+  </head>
+  <body>
+
+    <div class="row">
+        <div class="col-md-1"> 
+            <div class="tool-container">
+                <div class="pen-tool enabled">Pen</div>
+                <div class="pencil-tool">Dotted Pen</div>
+                <div class="rectangle-tool">Rectangle</div>
+                <div class="eraser-tool">Eraser</div>
+                <div class="clear-all"> Clear All </div>
+            </div>
+        </div>
+        <div class="col-md-8"> 
+            <svg class="drawingSVG"></svg>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-secondary">
+                <canvas class="videoCanvas"></canvas>
+                <video controls preload="none" autoplay=""></video>
+            </div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">Chat</div>
+                <div class="panel-body">
+                    <ul class="chat"></ul>
+                </div>
+                <div class="panel-footer">
+                    <div class="input-group">
+                        <input id="chat-input" class="form-control input-sm col-lg-5" placeholder="Type your message here..." type="text">
+                        <span class="input-group-btn">
+                            <button class="btn btn-primary btn-sm" id="btn-chat">Send</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <input class="name" type="text"/> <button class="entername">Submit name</button><h4 class="dname"></h4>
+     <button class="sendVideoBtn">Start Video</button>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+server -> client
+
+1) "chat message":
+	{
+		time:moment().format(),
+		name:uName,
+		data:msg
+	}
+
+2) "cursorStart" "updateCursor":
+	{
+		owner:owner,	//used for showing tooltip
+		data:msg
+	}
+
+3) "addDrawing":
+	{
+		type:'path',
+		addedBy:users[id].id,
+		addedTime:moment().format(),
+		data:msg
+	}
