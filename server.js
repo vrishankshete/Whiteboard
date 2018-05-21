@@ -7,6 +7,12 @@ var io = require('socket.io')(http);
 var _ = require("underscore");
 var util = require('util');
 var moment = require('moment');
+var fs = require('fs');
+var dir = './logs';
+
+if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir);
+}
 
 log4js.configure({
  appenders: [
