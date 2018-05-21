@@ -46,6 +46,7 @@ app.get('/', function(req,res){
 });
 
 app.get('/home', function(req, res){
+		logger.debug("Home / home Path");
 		var meetingRef = getRandom();
 		meetingRef = meetingRef.toString();
 		logger.info("Random : "+meetingRef);
@@ -56,6 +57,7 @@ app.get('/home', function(req, res){
 	});
 
 app.get('/home/:mid', function(req, res){
+		logger.debug("Home / home/ mid Path");
 		var meetingRef = req.params.mid;
 		//Check if room already exists
 		var found = _.findKey(rooms, meetingRef);
@@ -71,7 +73,7 @@ app.get('/home/:mid', function(req, res){
 
 io.on('connection', function(socket){
 	logger.debug("Client Connected. " + socket.id);
-	//console.log("\007");  BEEP
+	//console.log("\007");  //BEEP
 	var id = socket.id;
 	users[id] = {};
 	sidUnameMap[socket.id] = null;
@@ -88,15 +90,19 @@ io.on('connection', function(socket){
 
 	socket.on('room id', function(msg){
 		var roomId = msg.slice(-4);
+		if(isNaN(roomId)){
+			return;
+		}
 		users[id].roomId = roomId;
-		rooms[roomId].users.push(id);
-		logger.debug("\n***USERS: " + util.inspect(users));
-		logger.debug("\n***ROOMS: " + util.inspect(rooms));
-
-		socket.join(users[id].roomId);
-		updateClients();
-		socket.emit('initDrawings', rooms[roomId].drawings);
-		logger.debug("Sent Drawings: " + util.inspect(rooms[roomId].drawings));
+		if(rooms[roomId]){
+			rooms[roomId].users.push(id);
+			logger.debug("\n***USERS: " + util.inspect(users));
+			logger.debug("\n***ROOMS: " + util.inspect(rooms));
+			socket.join(users[id].roomId);
+			updateClients();
+			socket.emit('initDrawings', rooms[roomId].drawings);
+			logger.debug("Sent Drawings: " + util.inspect(rooms[roomId].drawings));
+		}
 	});
 
 	socket.on('submit name', function(name){
@@ -116,7 +122,7 @@ io.on('connection', function(socket){
 		var indexToBeRemoved = rooms[roomId].users.indexOf(id);
 		rooms[roomId].users.splice(indexToBeRemoved, 1);	
 		updateClients();
-		if(rooms[roomId].users.length === 0){
+		if(rooms[roomId] && rooms[roomId].users.length === 0){
 			//No user left in this room. Delete it.
 			delete rooms[roomId];
 		}
@@ -144,6 +150,9 @@ io.on('connection', function(socket){
 
 	socket.on('addDrawing', function(msg){
 		var roomId = users[id].roomId;
+		if(!roomId || rooms[roomId]==undefined){
+			return;
+		}
 		var drawing = {
 			userId: id,
 			name: users[id].name ? users[id].name : id, 
@@ -159,6 +168,9 @@ io.on('connection', function(socket){
 	socket.on('clearAll', function(){
 		logger.debug('Clear All');
 		var roomId = users[id].roomId;
+		if(!roomId){
+			return;
+		}
 		io.to(roomId).emit('clearAll');
 		rooms[roomId].drawings = [];
 	});	
