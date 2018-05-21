@@ -3,7 +3,7 @@ Create rooms, join rooms, share your drawings with people in group
 
 Run following commands in root folder:
 1. npm install in root folder
-2. node server
+2. npm run start
 
 By default, the server runs on port 80.
 Open http://localhost:80/home/ in preferably chrome browser.
