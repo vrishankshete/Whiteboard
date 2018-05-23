@@ -188,5 +188,5 @@ io.on('connection', function(socket){
 });
 
 http.listen(port, function(){
-	logger.info('Server listening on '+port);
+	logger.info('URL: http://localhost:'+port+'/home/');
 });

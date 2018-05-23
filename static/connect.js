@@ -14,6 +14,7 @@ $(document).ready(function() {
 	var $pencilTool = $('.pencil-tool');
 	var $eraserTool = $('.eraser-tool');
 	var $rectTool = $('.rectangle-tool');
+	var $circleTool = $('.circle-tool');
 	var $selfView = $('#selfView');
 	var $sendVideoBtn = $('.sendVideoBtn');
 	var $videoCanvas = $('.videoCanvas');
@@ -212,6 +213,77 @@ $(document).ready(function() {
 		}
 	};
 
+	var circleTool = {
+		svgEl: null,
+		penDown: false,
+		circleStart: {},
+		addDrawing: function (){
+			this.penDown = false;
+			if(this.svgEl){
+				var style = this.svgEl.getAttribute('style');
+				var cx = this.svgEl.getAttribute('cx');
+				var cy = this.svgEl.getAttribute('cy');
+				var r = this.svgEl.getAttribute('r');
+				socket.emit('addDrawing', {type:'circle', attributes:{x:cx, y:cy, r:r, style:style}});
+				$(this.svgEl).remove();
+			}
+		},
+		bindCircleEvents: function(){
+			var self=this;
+			$drawingArea.off();
+			$drawingArea.on('contextmenu', function(e){
+				e.preventDefault();
+			});
+			$drawingArea.on('mousedown touchstart', function(e){
+				e.preventDefault();
+				self.penDown = true;
+				self.svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+				var stroke_color="";
+				var svgElProperties;
+
+				if(e.which === 3){
+					stroke_color = 'stroke:red;';
+				}
+				else{
+					stroke_color = 'stroke:white;';
+				}
+
+				svgElProperties = 'fill:none;' + stroke_color + 'stroke-width:4px;';
+				var svgAttr = {cx:e.offsetX, cy:e.offsetY, r:1, style:svgElProperties};
+				$(self.svgEl).attr(svgAttr);
+				self.circleStart.cx = e.offsetX;
+				self.circleStart.cy = e.offsetY;
+				
+				$drawingArea.append(self.svgEl);
+				socket.emit('cursorStart', {type:'circle', attributes:svgAttr});
+			});
+
+			$drawingArea.on('mousemove touchmove', function(e){
+				if(self.penDown){
+					var svgAttr = null;
+					var length = Math.sqrt(((e.offsetX-self.circleStart.cx) * (e.offsetX-self.circleStart.cx)) + ((e.offsetY-self.circleStart.cy) * (e.offsetY-self.circleStart.cy)) );
+					svgAttr = {cx:self.circleStart.cx, cy:self.circleStart.cy, r:length};
+					$(self.svgEl).attr(svgAttr);
+					
+					socket.emit('updateCursor', {type:'circle', posAttrs:svgAttr});
+				}
+			});
+
+			$drawingArea.on('mouseup touchend', function(e){
+				if(self.penDown){
+					e.preventDefault();
+					circleTool.addDrawing();
+				}
+			});
+
+			$drawingArea.mouseleave(function(e){
+				if(self.penDown){
+					circleTool.addDrawing();
+				}
+			});
+		}
+	};
+
 	var helper = {
 		cursors: {},
 		toolTips: {},
@@ -276,6 +348,41 @@ $(document).ready(function() {
 					y:attrs.y,
 					width:attrs.width,
 					height: attrs.height
+				});
+				$drawingArea.append(el);
+			}
+		},
+		circle: {
+			cursorSvgEl: null,
+			CursorStart: function(msg){
+				this.cursorSvgEl = document.createElementNS('http://www.w3.org/2000/svg', msg.drawingData.type);
+				$(this.cursorSvgEl).attr({
+					style: msg.drawingData.attributes.style,
+					cx: msg.drawingData.attributes.cx,
+					cy: msg.drawingData.attributes.cy,
+					r: msg.drawingData.attributes.r
+				});
+				helper.cursors[msg.name] = $(this.cursorSvgEl);
+				$drawingArea.append(helper.cursors[msg.name]);
+			},
+			UpdateCursor: function(msg){
+				var posAttrs = msg.drawingData.posAttrs;
+				helper.cursors[msg.name].attr(posAttrs);
+				helper.showTooltip(msg.name, {x:posAttrs.cx, y:posAttrs.cy});
+			},
+			AddDrawing: function(msg){
+				if(helper.cursors[msg.name]){
+					helper.cursors[msg.name].remove();
+					delete helper.cursors[msg.name];
+				}
+				helper.removeToolTip(msg.name);
+				var attrs = msg.drawingData.attributes;
+				var el = document.createElementNS('http://www.w3.org/2000/svg', msg.drawingData.type);
+				$(el).attr({
+					style:attrs.style,
+					cx:attrs.x,
+					cy:attrs.y,
+					r:attrs.r
 				});
 				$drawingArea.append(el);
 			}
@@ -358,7 +465,7 @@ $(document).ready(function() {
 			$penTool.click(function(e){
 				helper.toggleActiveClass($penTool, "enabled");
 				$drawingArea.css( 'cursor', 'url(/pen3.cur), auto');
-				if(activeTool === 'rect'){
+				if(activeTool === 'rect' || activeTool === 'circle'){
 					penTool.bindPenEvents();
 				}
 				activeTool = 'pen';
@@ -366,7 +473,7 @@ $(document).ready(function() {
 
 			$pencilTool.click(function(e){
 				helper.toggleActiveClass($pencilTool, "enabled");
-				if(activeTool === 'rect'){
+				if(activeTool === 'rect' || activeTool === 'circle'){
 					penTool.bindPenEvents();
 				}
 				activeTool = 'pencil';
@@ -381,9 +488,18 @@ $(document).ready(function() {
 				activeTool = 'rect';
 			});
 
+			$circleTool.click(function(e){
+				helper.toggleActiveClass($circleTool, "enabled");
+				$drawingArea.css( 'cursor', 'crosshair');
+				if(activeTool !== 'circle'){
+					circleTool.bindCircleEvents();
+				}
+				activeTool = 'circle';
+			});
+
 			$eraserTool.click(function(e){
 				helper.toggleActiveClass($eraserTool, "enabled");
-				if(activeTool === 'rect'){
+				if(activeTool === 'rect' || activeTool === 'circle'){
 					penTool.bindPenEvents();
 				}
 				activeTool = 'eraser';
