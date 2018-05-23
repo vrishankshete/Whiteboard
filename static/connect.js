@@ -14,6 +14,7 @@ $(document).ready(function() {
 	var $pencilTool = $('.pencil-tool');
 	var $eraserTool = $('.eraser-tool');
 	var $rectTool = $('.rectangle-tool');
+	var $ellipseTool = $('.ellipse-tool');
 	var $circleTool = $('.circle-tool');
 	var $selfView = $('#selfView');
 	var $sendVideoBtn = $('.sendVideoBtn');
@@ -284,6 +285,106 @@ $(document).ready(function() {
 		}
 	};
 
+	var ellipseTool = {
+		svgEl: null,
+		penDown: false,
+		ellipseStart: {},
+		addDrawing: function (){
+			this.penDown = false;
+			if(this.svgEl){
+				var style = this.svgEl.getAttribute('style');
+				var cx = this.svgEl.getAttribute('cx');
+				var cy = this.svgEl.getAttribute('cy');
+				var rx = this.svgEl.getAttribute('rx');
+				var ry = this.svgEl.getAttribute('ry');
+				socket.emit('addDrawing', {type:'ellipse', attributes:{x:cx, y:cy, rx:rx, ry:ry, style:style}});
+				$(this.svgEl).remove();
+			}
+		},
+		bindEllipseEvents: function(){
+			var self=this;
+			$drawingArea.off();
+			$drawingArea.on('contextmenu', function(e){
+				e.preventDefault();
+			});
+			$drawingArea.on('mousedown touchstart', function(e){
+				e.preventDefault();
+				self.penDown = true;
+				self.svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+				var stroke_color="";
+				var svgElProperties;
+
+				if(e.which === 3){
+					stroke_color = 'stroke:red;';
+				}
+				else{
+					stroke_color = 'stroke:white;';
+				}
+
+				svgElProperties = 'fill:none;' + stroke_color + 'stroke-width:4px;';
+				var svgAttr = {cx:e.offsetX, cy:e.offsetY, rx:1, ry:1, style:svgElProperties};
+				$(self.svgEl).attr(svgAttr);
+				self.ellipseStart.x = e.offsetX;
+				self.ellipseStart.y = e.offsetY;
+				
+				$drawingArea.append(self.svgEl);
+				socket.emit('cursorStart', {type:'ellipse', attributes:svgAttr});
+			});
+
+			$drawingArea.on('mousemove touchmove', function(e){
+				if(self.penDown){
+					var svgAttr = null;
+					var x = e.offsetX;
+					var y = e.offsetY;
+					var sx = self.ellipseStart.x;
+					var sy = self.ellipseStart.y;
+					if(sx < x && sy < y){
+						var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+						var rx = helper.getEllipseHorizontalRadius({x:sx},{x:x});
+						var ry = helper.getEllipseVerticalRadius({y:sy},{y:y});
+						svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
+					}
+					else if(sx < x && sy > y){
+						var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+						var rx = helper.getEllipseHorizontalRadius({x:sx},{x:x});
+						var ry = helper.getEllipseVerticalRadius({y:y},{y:sy});
+						svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
+					}
+					else if(sx > x && sy < y){
+						var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+						var rx = helper.getEllipseHorizontalRadius({x:x},{x:sx});
+						var ry = helper.getEllipseVerticalRadius({y:sy},{y:y});
+						svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
+					}
+					else if(sx > x && sy > y){
+						var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+						var rx = helper.getEllipseHorizontalRadius({x:x},{x:sx});
+						var ry = helper.getEllipseVerticalRadius({y:y},{y:sy});
+						svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
+					}
+					else{
+						svgAttr = {cx:x, cy:y, rx:1, ry:1};
+					}
+					$(self.svgEl).attr(svgAttr);
+					socket.emit('updateCursor', {type:'ellipse', posAttrs:svgAttr});
+				}
+			});
+
+			$drawingArea.on('mouseup touchend', function(e){
+				if(self.penDown){
+					e.preventDefault();
+					ellipseTool.addDrawing();
+				}
+			});
+
+			$drawingArea.mouseleave(function(e){
+				if(self.penDown){
+					ellipseTool.addDrawing();
+				}
+			});
+		}
+	};
+
 	var helper = {
 		cursors: {},
 		toolTips: {},
@@ -314,6 +415,18 @@ $(document).ready(function() {
 				$(helper.toolTips[name]).remove();
 				delete helper.toolTips[name];
 			}
+		},
+		getEllipseCenter: function(start, end){
+			return {
+				x: (start.x+end.x)/2,
+				y: (start.y+end.y)/2
+			}
+		},
+		getEllipseHorizontalRadius: function(start, end){
+			return (end.x-start.x)/2;
+		},
+		getEllipseVerticalRadius: function(start, end){
+			return (end.y-start.y)/2;
 		},
 		rect: {
 			cursorSvgEl: null,
@@ -383,6 +496,43 @@ $(document).ready(function() {
 					cx:attrs.x,
 					cy:attrs.y,
 					r:attrs.r
+				});
+				$drawingArea.append(el);
+			}
+		},
+		ellipse: {
+			cursorSvgEl: null,
+			CursorStart: function(msg){
+				this.cursorSvgEl = document.createElementNS('http://www.w3.org/2000/svg', msg.drawingData.type);
+				$(this.cursorSvgEl).attr({
+					style: msg.drawingData.attributes.style,
+					cx: msg.drawingData.attributes.x,
+					cy: msg.drawingData.attributes.y,
+					rx: msg.drawingData.attributes.rx,
+					ry: msg.drawingData.attributes.ry
+				});
+				helper.cursors[msg.name] = $(this.cursorSvgEl);
+				$drawingArea.append(helper.cursors[msg.name]);
+			},
+			UpdateCursor: function(msg){
+				var posAttrs = msg.drawingData.posAttrs;
+				helper.cursors[msg.name].attr(posAttrs);
+				helper.showTooltip(msg.name, {x:posAttrs.cx, y:posAttrs.cy});
+			},
+			AddDrawing: function(msg){
+				if(helper.cursors[msg.name]){
+					helper.cursors[msg.name].remove();
+					delete helper.cursors[msg.name];
+				}
+				helper.removeToolTip(msg.name);
+				var attrs = msg.drawingData.attributes;
+				var el = document.createElementNS('http://www.w3.org/2000/svg', msg.drawingData.type);
+				$(el).attr({
+					style:attrs.style,
+					cx:attrs.x,
+					cy:attrs.y,
+					rx:attrs.rx,
+					ry:attrs.ry
 				});
 				$drawingArea.append(el);
 			}
@@ -465,7 +615,7 @@ $(document).ready(function() {
 			$penTool.click(function(e){
 				helper.toggleActiveClass($penTool, "enabled");
 				$drawingArea.css( 'cursor', 'url(/pen3.cur), auto');
-				if(activeTool === 'rect' || activeTool === 'circle'){
+				if(activeTool === 'rect' || activeTool === 'circle' || activeTool === 'ellipse'){
 					penTool.bindPenEvents();
 				}
 				activeTool = 'pen';
@@ -473,7 +623,7 @@ $(document).ready(function() {
 
 			$pencilTool.click(function(e){
 				helper.toggleActiveClass($pencilTool, "enabled");
-				if(activeTool === 'rect' || activeTool === 'circle'){
+				if(activeTool === 'rect' || activeTool === 'circle' || activeTool === 'ellipse'){
 					penTool.bindPenEvents();
 				}
 				activeTool = 'pencil';
@@ -497,9 +647,18 @@ $(document).ready(function() {
 				activeTool = 'circle';
 			});
 
+			$ellipseTool.click(function(e){
+				helper.toggleActiveClass($ellipseTool, "enabled");
+				$drawingArea.css( 'cursor', 'crosshair');
+				if(activeTool !== 'ellipse'){
+					ellipseTool.bindEllipseEvents();
+				}
+				activeTool = 'ellipse';
+			});
+
 			$eraserTool.click(function(e){
 				helper.toggleActiveClass($eraserTool, "enabled");
-				if(activeTool === 'rect' || activeTool === 'circle'){
+				if(activeTool === 'rect' || activeTool === 'circle' || activeTool === 'ellipse'){
 					penTool.bindPenEvents();
 				}
 				activeTool = 'eraser';

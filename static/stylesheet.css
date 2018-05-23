@@ -24,17 +24,17 @@ body { font: 13px Helvetica, Arial; }
     border: 1px solid black;
     height: 780px;
     width: 100%;
-    //background-color: red;
 }
 
-.pen-tool, .pencil-tool, .eraser-tool, .rectangle-tool, .circle-tool, .clear-all {
+.pen-tool, .pencil-tool, .eraser-tool, .rectangle-tool, .circle-tool, .ellipse-tool, .clear-all {
     border: 1px solid blue;
     height: 40px;
     width: 100%;
     background-color: green;
     text-align: center;
     vertical-align: middle;
-    line-height: 40px; 
+    line-height: 40px;
+    cursor:pointer;
 }
 
 .enabled {
