@@ -26,7 +26,7 @@ body { font: 13px Helvetica, Arial; }
     width: 100%;
 }
 
-.pen-tool, .pencil-tool, .eraser-tool, .rectangle-tool, .circle-tool, .ellipse-tool, .clear-all {
+.pen-tool, .pencil-tool, .eraser-tool, .rectangle-tool, .ellipse-tool, .clear-all {
     border: 1px solid blue;
     height: 40px;
     width: 100%;
