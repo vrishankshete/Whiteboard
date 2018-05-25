@@ -30,7 +30,9 @@ log4js.configure({
 var logger = log4js.getLogger('chat');
 logger.setLevel('auto');
 
-var port = 80;
+const HOST = '0.0.0.0'
+const PORT = 8081;
+
 var rooms = {};
 var users = {};
 var groups = {};
@@ -187,6 +189,6 @@ io.on('connection', function(socket){
 	});
 });
 
-http.listen(port, function(){
-	logger.info('URL: http://localhost:'+port+'/home/');
+http.listen(PORT, function(){
+	logger.info(`URL: http://${HOST}:${PORT}/home/`);
 });
