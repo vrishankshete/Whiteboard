@@ -1,6 +1,9 @@
 /*Client side script Chat App*/
 $(document).ready(function() {
+	/*
+	TODO: Add listeners for drawing to erase fully.
 
+	*/
 	var $drawingArea = $('.drawingSVG');
 	var $chatSendBtn = $('button#btn-chat');
 	var $chatInput = $('#chat-input');
@@ -13,6 +16,7 @@ $(document).ready(function() {
 	var $penTool = $('.pen-tool');
 	var $pencilTool = $('.pencil-tool');
 	var $eraserTool = $('.eraser-tool');
+	var $lineTool = $('.line-tool');
 	var $rectTool = $('.rectangle-tool');
 	var $ellipseTool = $('.ellipse-tool');
 	var $selfView = $('#selfView');
@@ -24,13 +28,23 @@ $(document).ready(function() {
 
 	var myName;
 	var activeTool = 'pen';
+	$drawingArea.css( 'cursor', 'url(/pen3.cur), auto');
 
-	var penTool={
-		svgEl: null,
-		points: [],
-		getElement: function(e){
-			this.svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-			var stroke_style="", stroke_color="", stroke_width='stroke-width:4px;', svgElAttr, svgElStyle;
+	var utilityHelper={
+		getEllipseCenter: function(start, end){
+			return {
+				x: (start.x+end.x)/2,
+				y: (start.y+end.y)/2
+			}
+		},
+		getEllipseHorizontalRadius: function(start, end){
+			return (end.x-start.x)/2;
+		},
+		getEllipseVerticalRadius: function(start, end){
+			return (end.y-start.y)/2;
+		},
+		getCommonSVGStyle: function(e){
+			var stroke_style="", stroke_color="", stroke_width='stroke-width:4px;', svgElStyle;
 
 			if(e.which === 3){
 				stroke_color = 'stroke:red;';
@@ -50,10 +64,60 @@ $(document).ready(function() {
 					stroke_color = 'stroke:black;';
 					stroke_width = 'stroke-width:20px;';
 				break;
+				default:
+				break;
 			}
 
 			svgElStyle = 'fill:none;' + stroke_color + stroke_width + stroke_style;
-			svgElAttr = {'style':svgElStyle, 'd':null};
+			return svgElStyle;
+		}
+	}
+
+	var lineTool={
+		svgEl: null,
+		lineStart: {},
+		getElement: function(e){
+			this.svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+
+			var svgElProperties = utilityHelper.getCommonSVGStyle(e);
+			var svgAttr = {x1:e.offsetX, y1:e.offsetY, x2:e.offsetX, y2:e.offsetY, style:svgElProperties};
+
+			$(this.svgEl).attr(svgAttr);
+			this.lineStart.x = e.offsetX;
+			this.lineStart.y = e.offsetY;
+			
+			$drawingArea.append(this.svgEl);
+			socket.emit('cursorStart', {type:'line', attributes:svgAttr});
+			return this.svgEl;
+		},
+		addDrawing: function (){
+			if(this.svgEl){
+				var style = this.svgEl.getAttribute('style');
+				var x1 = this.svgEl.getAttribute('x1');
+				var y1 = this.svgEl.getAttribute('y1');
+				var x2 = this.svgEl.getAttribute('x2');
+				var y2 = this.svgEl.getAttribute('y2');
+				socket.emit('addDrawing', {type:'line', attributes:{x1:x1, y1:y1, x2:x2, y2:y2, style:style}});
+				//Remove the current drawn drawing as socket broadcasted drawing will be replaced with it
+				$(this.svgEl).remove();
+			}
+		},
+		updateElement: function(e){
+			var svgAttr = null;
+			svgAttr = {x1:this.lineStart.x, y1:this.lineStart.y, x2:e.offsetX, y2:e.offsetY};
+			$(this.svgEl).attr(svgAttr);
+			socket.emit('updateCursor', {type:'line', posAttrs:svgAttr});
+		}
+	}
+
+	var penTool={
+		svgEl: null,
+		points: [],
+		getElement: function(e){
+			this.svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+			var svgElStyle = utilityHelper.getCommonSVGStyle(e);
+			var svgElAttr = {'style':svgElStyle, 'd':null};
 			$(this.svgEl).attr(svgElAttr);
 			var x,y;
 			if(e.originalEvent.touches){
@@ -102,17 +166,9 @@ $(document).ready(function() {
 		rectStart: {},
 		getElement: function(e){
 			this.svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-			var stroke_color="";
-			var svgElProperties;
-
-			if(e.which === 3){
-				stroke_color = 'stroke:red;';
-			}
-			else{
-				stroke_color = 'stroke:white;';
-			}
-			svgElProperties = 'fill:none;' + stroke_color + 'stroke-width:4px;';
-			var svgAttr = {x:e.offsetX, y:e.offsetY, width:1, height:1, style:svgElProperties};
+			
+			var svgElStyle = utilityHelper.getCommonSVGStyle(e);
+			var svgAttr = {x:e.offsetX, y:e.offsetY, width:1, height:1, style:svgElStyle};
 			$(this.svgEl).attr(svgAttr);
 			this.rectStart.x = e.offsetX;
 			this.rectStart.y = e.offsetY;
@@ -160,18 +216,9 @@ $(document).ready(function() {
 		ellipseStart: {},
 		getElement: function(e){
 			this.svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-			var stroke_color="";
-			var svgElProperties;
 
-			if(e.which === 3){
-				stroke_color = 'stroke:red;';
-			}
-			else{
-				stroke_color = 'stroke:white;';
-			}
-
-			svgElProperties = 'fill:none;' + stroke_color + 'stroke-width:4px;';
-			var svgAttr = {cx:e.offsetX, cy:e.offsetY, rx:1, ry:1, style:svgElProperties};
+			var svgElStyle = utilityHelper.getCommonSVGStyle(e);
+			var svgAttr = {cx:e.offsetX, cy:e.offsetY, rx:1, ry:1, style:svgElStyle};
 			$(this.svgEl).attr(svgAttr);
 			this.ellipseStart.x = e.offsetX;
 			this.ellipseStart.y = e.offsetY;
@@ -198,27 +245,27 @@ $(document).ready(function() {
 			var sx = this.ellipseStart.x;
 			var sy = this.ellipseStart.y;
 			if(sx < x && sy < y){
-				var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
-				var rx = helper.getEllipseHorizontalRadius({x:sx},{x:x});
-				var ry = helper.getEllipseVerticalRadius({y:sy},{y:y});
+				var center = utilityHelper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+				var rx = utilityHelper.getEllipseHorizontalRadius({x:sx},{x:x});
+				var ry = utilityHelper.getEllipseVerticalRadius({y:sy},{y:y});
 				svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
 			}
 			else if(sx < x && sy > y){
-				var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
-				var rx = helper.getEllipseHorizontalRadius({x:sx},{x:x});
-				var ry = helper.getEllipseVerticalRadius({y:y},{y:sy});
+				var center = utilityHelper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+				var rx = utilityHelper.getEllipseHorizontalRadius({x:sx},{x:x});
+				var ry = utilityHelper.getEllipseVerticalRadius({y:y},{y:sy});
 				svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
 			}
 			else if(sx > x && sy < y){
-				var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
-				var rx = helper.getEllipseHorizontalRadius({x:x},{x:sx});
-				var ry = helper.getEllipseVerticalRadius({y:sy},{y:y});
+				var center = utilityHelper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+				var rx = utilityHelper.getEllipseHorizontalRadius({x:x},{x:sx});
+				var ry = utilityHelper.getEllipseVerticalRadius({y:sy},{y:y});
 				svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
 			}
 			else if(sx > x && sy > y){
-				var center = helper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
-				var rx = helper.getEllipseHorizontalRadius({x:x},{x:sx});
-				var ry = helper.getEllipseVerticalRadius({y:y},{y:sy});
+				var center = utilityHelper.getEllipseCenter({x:x,y:y}, {x:sx, y:sy});
+				var rx = utilityHelper.getEllipseHorizontalRadius({x:x},{x:sx});
+				var ry = utilityHelper.getEllipseVerticalRadius({y:y},{y:sy});
 				svgAttr = {cx:center.x, cy:center.y, rx:rx, ry:ry};
 			}
 			else{
@@ -249,6 +296,10 @@ $(document).ready(function() {
 						var svgEl = penTool.getElement(e);
 						$drawingArea.append(svgEl);
 					break;
+					case 'line':
+						var svgEl = lineTool.getElement(e);
+						$drawingArea.append(svgEl);
+					break;
 					case 'rect':
 						var svgEl = rectTool.getElement(e);
 						$drawingArea.append(svgEl);
@@ -269,6 +320,9 @@ $(document).ready(function() {
 						case 'eraser':
 							penTool.updateElement(e);
 						break;
+						case 'line':
+							lineTool.updateElement(e);
+						break;
 						case 'rect':
 							rectTool.updateElement(e);
 						break;
@@ -288,6 +342,9 @@ $(document).ready(function() {
 						case 'eraser':
 							penTool.addDrawing();
 						break;
+						case 'line':
+							lineTool.addDrawing();
+						break;
 						case 'rect':
 							rectTool.addDrawing();
 						break;
@@ -306,6 +363,9 @@ $(document).ready(function() {
 						case 'pencil':
 						case 'eraser':
 							penTool.addDrawing();
+						break;
+						case 'line':
+							lineTool.addDrawing();
 						break;
 						case 'rect':
 							rectTool.addDrawing();
@@ -351,18 +411,6 @@ $(document).ready(function() {
 				delete helper.toolTips[name];
 			}
 		},
-		getEllipseCenter: function(start, end){
-			return {
-				x: (start.x+end.x)/2,
-				y: (start.y+end.y)/2
-			}
-		},
-		getEllipseHorizontalRadius: function(start, end){
-			return (end.x-start.x)/2;
-		},
-		getEllipseVerticalRadius: function(start, end){
-			return (end.y-start.y)/2;
-		},
 		rect: {
 			cursorSvgEl: null,
 			CursorStart: function(msg){
@@ -396,6 +444,43 @@ $(document).ready(function() {
 					y:attrs.y,
 					width:attrs.width,
 					height: attrs.height
+				});
+				$drawingArea.append(el);
+			}
+		},
+		line: {
+			cursorSvgEl: null,
+			CursorStart: function(msg){
+				this.cursorSvgEl = document.createElementNS('http://www.w3.org/2000/svg', msg.drawingData.type);
+				$(this.cursorSvgEl).attr({
+					style: msg.drawingData.attributes.style,
+					x1: msg.drawingData.attributes.x1,
+					y1: msg.drawingData.attributes.y1,
+					x2: msg.drawingData.attributes.x2,
+					y2: msg.drawingData.attributes.y2
+				});
+				helper.cursors[msg.name] = $(this.cursorSvgEl);
+				$drawingArea.append(helper.cursors[msg.name]);
+			},
+			UpdateCursor: function(msg){
+				var posAttrs = msg.drawingData.posAttrs;
+				helper.cursors[msg.name].attr(posAttrs);
+				helper.showTooltip(msg.name, {x:posAttrs.x2, y:posAttrs.y2});
+			},
+			AddDrawing: function(msg){
+				if(helper.cursors[msg.name]){
+					helper.cursors[msg.name].remove();
+					delete helper.cursors[msg.name];
+				}
+				helper.removeToolTip(msg.name);
+				var attrs = msg.drawingData.attributes;
+				var el = document.createElementNS('http://www.w3.org/2000/svg', msg.drawingData.type);
+				$(el).attr({
+					style:attrs.style,
+					x1:attrs.x1,
+					y1:attrs.y1,
+					x2:attrs.x2,
+					y2: attrs.y2
 				});
 				$drawingArea.append(el);
 			}
@@ -520,12 +605,19 @@ $(document).ready(function() {
 
 			$pencilTool.click(function(e){
 				helper.toggleActiveClass($pencilTool, "enabled");
+				$drawingArea.css( 'cursor', 'url(/pen3.cur), auto');				
 				activeTool = 'pencil';
 			});
 
 			$eraserTool.click(function(e){
-				helper.toggleActiveClass($eraserTool, "enabled");
+				helper.toggleActiveClass($eraserTool, "enabled");							
 				activeTool = 'eraser';
+			});
+
+			$lineTool.click(function(e){
+				helper.toggleActiveClass($lineTool, "enabled");
+				$drawingArea.css( 'cursor', 'crosshair');				
+				activeTool = 'line';
 			});
 
 			$rectTool.click(function(e){
@@ -626,6 +718,7 @@ $(document).ready(function() {
 
 			socket.on('addDrawing', function(msg){
 				helper[msg.drawingData.type].AddDrawing(msg);
+				//Code for drawing listener events
 				/*var newCursorSvgEl;
 				$(cursorSvgEl).mouseover(function(){
 					newCursorSvgEl=cursorSvgEl.cloneNode(true);
@@ -645,7 +738,7 @@ $(document).ready(function() {
 
 			socket.on('clearAll', function(){
 				$drawingArea.empty();
-			});	
+			});
 
 			socket.on('users', function(msg){
 				console.log(msg);

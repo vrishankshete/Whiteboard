@@ -16,24 +16,21 @@
   <body>
 
     <div class="row">
-        <div class="col-md-1"> 
+        <div class="col-sm-1"> 
             <div class="tool-container">
                 <div class="pen-tool enabled">Pen</div>
-                <div class="pencil-tool">Dotted Pen</div>
+                <div class="pencil-tool">DottedPen</div>
+                <div class="line-tool">Line</div>
                 <div class="rectangle-tool">Rectangle</div>
                 <div class="ellipse-tool">Ellipse</div>
                 <div class="eraser-tool">Eraser</div>
                 <div class="clear-all"> Clear All </div>
             </div>
         </div>
-        <div class="col-md-8"> 
+        <div class="col-sm-8"> 
             <svg class="drawingSVG"></svg>
         </div>
-        <div class="col-md-3">
-            <div class="panel panel-secondary">
-                <canvas class="videoCanvas"></canvas>
-                <video controls preload="none" autoplay=""></video>
-            </div>
+        <div class="col-sm-3">
             <div class="panel panel-primary">
                 <div class="panel-heading">Chat</div>
                 <div class="panel-body" style="max-height: 350px;overflow-y: scroll;">
@@ -47,6 +44,10 @@
                         </span>
                     </div>
                 </div>
+            </div>
+            <div class="panel panel-secondary">
+                <canvas class="videoCanvas"></canvas>
+                <video controls preload="none" autoplay=""></video>
             </div>
         </div>
     </div>
