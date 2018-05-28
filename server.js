@@ -72,9 +72,9 @@ app.get('/home/:mid', function(req, res){
 		//Check if room already exists
 		var found = rooms[meetingRef];
 		if(!found){
-			logger.debug(meetingRef+ " Room does not exist. Creating a new one for you...");
+			logger.debug(meetingRef+ " Room does not exist. Creating specified room...");
 			meetingRef = meetingRef.toString();
-			logger.info("Random : "+meetingRef);
+			logger.info("Room Number : "+meetingRef);
 			rooms[meetingRef] = {};
 			rooms[meetingRef].users = [];
 			rooms[meetingRef].drawings = [];
