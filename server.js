@@ -31,7 +31,7 @@ var logger = log4js.getLogger('chat');
 logger.setLevel('auto');
 
 const HOST = '0.0.0.0'
-const PORT = 8081;
+const PORT = 8082;
 
 var rooms = {};
 var users = {};
@@ -48,9 +48,11 @@ function getRandom(){
 app.get('/', function(req,res){
 	logger.debug("Home Path");
 	logger.debug("BEFORE File sent");
-	res.sendFile(__dirname + "/static/" + "index.html");
-	logger.debug("AFTER File sent");
+	console.log("HOMEEEEE");
 	res.redirect('/home');
+	
+	//res.sendFile(__dirname + "/static/" + "index.html");
+	logger.debug("AFTER File sent");
 });
 
 app.get('/home', function(req, res){
@@ -68,15 +70,21 @@ app.get('/home/:mid', function(req, res){
 		logger.debug("Home / home/ mid Path");
 		var meetingRef = req.params.mid;
 		//Check if room already exists
-		var found = _.findKey(rooms, meetingRef);
-		logger.debug("Meeting reference: " + meetingRef + " Found: " + found);
-		if(found == -1){
-			logger.debug("Room does not exist. Creating a new one for you...");
-			res.redirect('/home');
+		var found = rooms[meetingRef];
+		if(!found){
+			logger.debug(meetingRef+ " Room does not exist. Creating a new one for you...");
+			meetingRef = meetingRef.toString();
+			logger.info("Random : "+meetingRef);
+			rooms[meetingRef] = {};
+			rooms[meetingRef].users = [];
+			rooms[meetingRef].drawings = [];
+			res.sendFile(__dirname + "/static/" + "index.html");
 		}
-		logger.debug("Room valid:"+ meetingRef);
-		logger.debug("Available Rooms: " + util.inspect(rooms));
-		res.sendFile(__dirname + "/static/" + "index.html");
+		else{
+			logger.debug("Room valid:"+ meetingRef);
+			logger.debug("Available Rooms: " + util.inspect(rooms));
+			res.sendFile(__dirname + "/static/" + "index.html");
+		}
 	});
 
 io.on('connection', function(socket){
